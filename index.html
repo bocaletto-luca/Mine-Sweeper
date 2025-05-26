@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minesweeper 2.0 - Modern Minesweeper</title>
+  <style>
+    /* RESET & GLOBAL STYLES */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      text-align: center;
+    }
+    header, footer {
+      background-color: #1f1f1f;
+      padding: 10px 20px;
+    }
+    header {
+      position: relative;
+    }
+    header h1 {
+      font-size: 2rem;
+    }
+    /* Help button in header */
+    .help-button {
+      position: absolute;
+      right: 20px;
+      top: 10px;
+      background-color: #007BFF;
+      border: none;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .help-button:hover {
+      background-color: #0056b3;
+    }
+    /* Container */
+    .container {
+      max-width: 800px;
+      width: 100%;
+      margin: 20px auto;
+      flex: 1;
+    }
+    /* Difficulty Selection */
+    .difficulty-section {
+      margin-bottom: 20px;
+    }
+    .difficulty-section label {
+      margin: 0 15px 0 0;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .difficulty-section input {
+      margin-right: 5px;
+    }
+    /* Info Bar (timer/mine count) */
+    .info-bar {
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-around;
+    }
+    /* Board container */
+    #boardContainer {
+      margin: 20px auto;
+      display: grid;
+      gap: 2px;
+      background-color: #444;
+      border: 2px solid #333;
+    }
+    /* Celle – usiamo dimensioni fisse che si riducono su mobile */
+    .cell {
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      text-align: center;
+      vertical-align: middle;
+      background-color: #555;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease, opacity 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .cell.revealed {
+      background-color: #999;
+      cursor: default;
+    }
+    .cell.flagged {
+      background-color: #007BFF;
+      color: #fff;
+    }
+    .cell.mine {
+      background-color: #ff4444;
+    }
+    /* Aggiungiamo un effetto fade per il reveal */
+    .cell.revealed {
+      opacity: 0;
+      animation: fadeIn 0.3s forwards;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    /* Contenitore per pulsanti */
+    .controls {
+      margin-top: 20px;
+    }
+    .controls button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #28a745;
+      color: #fff;
+      transition: background-color 0.3s ease;
+    }
+    .controls button:hover {
+      background-color: #218838;
+    }
+    /* Result Message */
+    #resultMessage {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      min-height: 1.5em;
+      font-weight: bold;
+    }
+    /* Help Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    .modal-content {
+      background-color: #2a2a2a;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 10px;
+      text-align: left;
+      color: #e0e0e0;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover, .close:focus {
+      color: #fff;
+      text-decoration: none;
+    }
+    footer {
+      font-size: 0.9rem;
+      margin-top: 20px;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .cell {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Minesweeper 2.0</h1>
+    <button class="help-button" id="helpBtn">Help</button>
+  </header>
+
+  <div class="container">
+    <!-- Sezione di selezione difficoltà -->
+    <section class="difficulty-section">
+      <label>
+        <input type="radio" name="difficulty" value="easy" checked>
+        Easy
+      </label>
+      <label>
+        <input type="radio" name="difficulty" value="medium">
+        Medium
+      </label>
+      <label>
+        <input type="radio" name="difficulty" value="hard">
+        Hard
+      </label>
+    </section>
+    
+    <!-- Info bar: Mine totali - Flag rimasti / Timer (opzionale) -->
+    <div class="info-bar">
+      <div id="mineCount">Mines: 0</div>
+      <div id="flagCount">Flags: 0</div>
+    </div>
+    
+    <!-- Contenitore della griglia -->
+    <div id="boardContainer"></div>
+    
+    <!-- Controlli di gioco -->
+    <div class="controls">
+      <button id="newGameBtn">New Game</button>
+    </div>
+    
+    <!-- Messaggio di stato -->
+    <div id="resultMessage"></div>
+  </div>
+
+  <footer>
+    © 2025 Bocaletto Luca
+  </footer>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeHelp">&times;</span>
+      <h2>How to Play Minesweeper 2.0</h2>
+      <p>
+        1. Choose a difficulty level:
+          <br>&bull; <strong>Easy</strong>: 9x9 grid with 10 mines.
+          <br>&bull; <strong>Medium</strong>: 16x16 grid with 40 mines.
+          <br>&bull; <strong>Hard</strong>: 16x30 grid with 99 mines.
+        <br><br>
+        2. Left-click a cell to reveal it. If it contains a mine, you lose.
+        <br> - If the cell is empty, a number shows the count of adjacent mines.
+        <br> - If the number is 0, adjacent cells are automatically revealed.
+        <br><br>
+        3. Right-click (o “long press” su dispositivi touch) per contrassegnare una cella con un flag se sospetti una mina.
+        <br><br>
+        4. Vinci scoprendo tutte le celle prive di mine!
+      </p>
+    </div>
+  </div>
+
+  <script>
+    /******** GLOBAL VARIABLES E STATE ********/
+    let board = []; // Matrice degli oggetti cella
+    let boardWidth = 0, boardHeight = 0, totalMines = 0;
+    let gameOverFlag = false;
+    let flagsPlaced = 0;
+    
+    // DOM Elements
+    const boardContainer = document.getElementById("boardContainer");
+    const mineCountDiv = document.getElementById("mineCount");
+    const flagCountDiv = document.getElementById("flagCount");
+    const resultMessageDiv = document.getElementById("resultMessage");
+    const newGameBtn = document.getElementById("newGameBtn");
+    const difficultyInputs = document.getElementsByName("difficulty");
+    
+    // Help Modal Elements
+    const helpBtn = document.getElementById("helpBtn");
+    const helpModal = document.getElementById("helpModal");
+    const closeHelp = document.getElementById("closeHelp");
+    
+    /******** DIFFICULTY SETTINGS ********/
+    const difficulties = {
+      easy: { width: 9, height: 9, mines: 10 },
+      medium: { width: 16, height: 16, mines: 40 },
+      hard: { width: 30, height: 16, mines: 99 }
+    };
+
+    /******** UTILITY FUNCTIONS ********/
+    // Genera una matrice bidimensionale inizializzata con celle
+    function initBoard(width, height) {
+      let arr = [];
+      for (let y = 0; y < height; y++) {
+        let row = [];
+        for (let x = 0; x < width; x++) {
+          row.push({
+            x, 
+            y,
+            hasMine: false,
+            isRevealed: false,
+            isFlagged: false,
+            adjacentMines: 0
+          });
+        }
+        arr.push(row);
+      }
+      return arr;
+    }
+    
+    // Posiziona le mine casualmente
+    function placeMines(board, width, height, mineCount) {
+      let placed = 0;
+      while (placed < mineCount) {
+        let x = Math.floor(Math.random() * width);
+        let y = Math.floor(Math.random() * height);
+        if (!board[y][x].hasMine) {
+          board[y][x].hasMine = true;
+          placed++;
+        }
+      }
+    }
+    
+    // Calcola il numero di mine adiacenti ad ogni cella
+    function calculateAdjacencies(board, width, height) {
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (board[y][x].hasMine) continue;
+          let count = 0;
+          for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+              let newX = x + j;
+              let newY = y + i;
+              if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+                if (board[newY][newX].hasMine) count++;
+              }
+            }
+          }
+          board[y][x].adjacentMines = count;
+        }
+      }
+    }
+    
+    // Aggiorna i contatori (mine totali / flag piazzati)
+    function updateCounters() {
+      mineCountDiv.textContent = `Mines: ${totalMines}`;
+      flagCountDiv.textContent = `Flags: ${flagsPlaced}`;
+    }
+    
+    /******** BOARD RENDERING ********/
+    function renderBoard() {
+      boardContainer.innerHTML = "";
+      boardContainer.style.gridTemplateColumns = `repeat(${boardWidth}, 32px)`;
+      for (let y = 0; y < boardHeight; y++) {
+        for (let x = 0; x < boardWidth; x++) {
+          const cell = board[y][x];
+          const cellDiv = document.createElement("div");
+          cellDiv.classList.add("cell");
+          cellDiv.id = `cell-${x}-${y}`;
+          cellDiv.addEventListener("click", () => handleCellClick(x, y));
+          cellDiv.addEventListener("contextmenu", (e) => { e.preventDefault(); handleRightClick(x, y); });
+          // Per dispositivi touch, implementare long press per flag (opzionale)
+          boardContainer.appendChild(cellDiv);
+        }
+      }
+    }
+    
+    /******** GAME LOGIC ********/
+    // Revealing a cell con effetto “fade-in”
+    function revealCell(x, y) {
+      if (gameOverFlag) return;
+      const cell = board[y][x];
+      if (cell.isRevealed || cell.isFlagged) return;
+      cell.isRevealed = true;
+      const cellDiv = document.getElementById(`cell-${x}-${y}`);
+      cellDiv.classList.add("revealed");
+      if (cell.hasMine) {
+        cellDiv.textContent = "💣";
+        cellDiv.classList.add("mine");
+        gameOver();
+      } else if (cell.adjacentMines > 0) {
+        cellDiv.textContent = cell.adjacentMines;
+      } else {
+        // Nessun numero, quindi espandi il flood
+        cellDiv.textContent = "";
+        floodFill(x, y);
+      }
+      checkWin();
+    }
+    
+    // Funzione ricorsiva per rivelare le celle adiacenti se si ha 0 mine vicine
+    function floodFill(x, y) {
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          let newX = x + j;
+          let newY = y + i;
+          if (newX >= 0 && newX < boardWidth && newY >= 0 && newY < boardHeight) {
+            if (!board[newY][newX].isRevealed && !board[newY][newX].hasMine) {
+              revealCell(newX, newY);
+            }
+          }
+        }
+      }
+    }
+    
+    // Gestione click sinistro (rivelazione)
+    function handleCellClick(x, y) {
+      if (gameOverFlag) return;
+      const cell = board[y][x];
+      if (!cell.isRevealed && !cell.isFlagged) {
+        revealCell(x, y);
+      }
+    }
+    
+    // Gestione click destro (flag)
+    function handleRightClick(x, y) {
+      if (gameOverFlag) return;
+      const cell = board[y][x];
+      if (cell.isRevealed) return;
+      cell.isFlagged = !cell.isFlagged;
+      const cellDiv = document.getElementById(`cell-${x}-${y}`);
+      cellDiv.classList.toggle("flagged");
+      cellDiv.textContent = cell.isFlagged ? "🚩" : "";
+      flagsPlaced = countFlags();
+      updateCounters();
+      checkWin();
+    }
+    
+    function countFlags() {
+      let count = 0;
+      for (let row of board) {
+        for (let cell of row) {
+          if (cell.isFlagged) count++;
+        }
+      }
+      return count;
+    }
+    
+    // Verifica se il giocatore ha vinto: se tutte le celle non contenenti mine sono state rivelate
+    function checkWin() {
+      for (let y = 0; y < boardHeight; y++) {
+        for (let x = 0; x < boardWidth; x++) {
+          const cell = board[y][x];
+          if (!cell.hasMine && !cell.isRevealed) {
+            return;
+          }
+        }
+      }
+      // Se arriva qui il giocatore ha vinto
+      resultMessageDiv.textContent = "Congratulations! You won!";
+      gameOverFlag = true;
+    }
+    
+    // Termina la partita (Game Over) se si clicca su una mina
+    function gameOver() {
+      resultMessageDiv.textContent = "Game Over!";
+      gameOverFlag = true;
+      // Rivelare tutte le mine
+      for (let y = 0; y < boardHeight; y++) {
+        for (let x = 0; x < boardWidth; x++) {
+          const cell = board[y][x];
+          if (cell.hasMine) {
+            const cellDiv = document.getElementById(`cell-${x}-${y}`);
+            cellDiv.textContent = "💣";
+            cellDiv.classList.add("mine");
+          }
+        }
+      }
+    }
+    
+    /******** NEW GAME INITIALIZATION ********/
+    function newGame() {
+      // Leggi la difficoltà selezionata
+      let selectedDifficulty = "easy";
+      difficultyInputs.forEach(input => {
+        if (input.checked) {
+          selectedDifficulty = input.value;
+        }
+      });
+      const settings = difficulties[selectedDifficulty];
+      boardWidth = settings.width;
+      boardHeight = settings.height;
+      totalMines = settings.mines;
+      gameOverFlag = false;
+      flagsPlaced = 0;
+      updateCounters();
+      resultMessageDiv.textContent = "";
+      // Inizializza matrice di gioco
+      board = initBoard(boardWidth, boardHeight);
+      placeMines(board, boardWidth, boardHeight, totalMines);
+      calculateAdjacencies(board, boardWidth, boardHeight);
+      renderBoard();
+    }
+    
+    /******** EVENT LISTENERS ********/
+    newGameBtn.addEventListener("click", newGame);
+    
+    // Help Modal Logic
+    helpBtn.addEventListener("click", () => {
+      helpModal.style.display = "block";
+    });
+    closeHelp.addEventListener("click", () => {
+      helpModal.style.display = "none";
+    });
+    window.addEventListener("click", (event) => {
+      if (event.target === helpModal) {
+        helpModal.style.display = "none";
+      }
+    });
+    
+    // Avvio automatico del gioco alla prima esecuzione
+    newGame();
+  </script>
+</body>
+</html>
