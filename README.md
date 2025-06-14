@@ -6,6 +6,8 @@
 [![Made with JavaScript](https://img.shields.io/badge/Made%20with-JavaScript-F7DF1E?logo=javascript)](https://developer.mozilla.org/docs/Web/JavaScript)  
 [![GitHub followers](https://img.shields.io/github/followers/bocaletto-luca?label=Follow&style=social)](https://github.com/bocaletto-luca)
 
+[![Test Online](https://img.shields.io/badge/Test%20Online-Click%20Here-brightgreen?style=for-the-badge)](https://bocaletto-luca.github.io/Mine-Sweeper/)
+
 **Minesweeper 2.0** is a modern, fully responsive, single-page web version of the classic Minesweeper game. This version not only captures the nostalgic charm of the original game but also adds modern functionalities and polish:
 
 - **Difficulty Selection:** Choose among Easy, Medium, and Hard, with different grid sizes and mine counts.
