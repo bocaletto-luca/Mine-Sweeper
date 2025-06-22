@@ -67,3 +67,5 @@ The objective is simple: reveal all the cells that do not contain mines. A left-
 2. Start Server example Apache2 and open index.hmtl in Web Browser
 
 #### Enjoy Game - By Bocaletto Luca
+
+#### License: GPLv3
